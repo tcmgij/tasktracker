@@ -13,13 +13,19 @@
   --goal-2: #7A8FA6;
   --accent: #2C2C2C;
   --radius: 10px;
+  --top-nav-height: 52px;
   --nav-height: 56px;
   --font: Georgia, 'Times New Roman', serif;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
-html, body {
+html {
+  height: 100%;
+  background: var(--bg);
+}
+
+body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
@@ -28,31 +34,35 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
-}
-
-body {
-  display: flex;
-  flex-direction: column;
-  max-width: 430px;
-  margin: 0 auto;
-  position: relative;
   overflow: hidden;
-  height: 100dvh;
 }
 
-/* ---- TOP NAV ---- */
+/* ---- TOP NAV — fixed ---- */
 .top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: 0 20px;
-  height: calc(52px + var(--safe-top));
+  padding: 0 20px 12px;
+  height: calc(var(--top-nav-height) + var(--safe-top));
   padding-top: var(--safe-top);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
+  max-width: 430px;
+  margin: 0 auto;
+}
+
+/* Centre the fixed nav on wide screens */
+@media (min-width: 430px) {
+  .top-nav, .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 430px;
+  }
 }
 
 .top-nav h1 {
@@ -82,9 +92,13 @@ body {
 
 /* ---- SCREENS ---- */
 .screens {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
+  position: fixed;
+  top: calc(var(--top-nav-height) + var(--safe-top));
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-height) + var(--safe-bottom));
+  max-width: 430px;
+  margin: 0 auto;
 }
 
 .screen {
@@ -92,20 +106,31 @@ body {
   inset: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  display: none;
-  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  padding-bottom: 16px;
 }
-.screen.active { display: block; }
+.screen.active {
+  visibility: visible;
+  pointer-events: all;
+  opacity: 1;
+}
 
-/* ---- BOTTOM NAV ---- */
+/* ---- BOTTOM NAV — fixed ---- */
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   background: var(--bg);
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
-  z-index: 10;
+  max-width: 430px;
+  margin: 0 auto;
 }
 
 .nav-tab {
@@ -479,13 +504,16 @@ body {
   z-index: 100;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
 }
 .modal-overlay.open {
   opacity: 1;
   pointer-events: all;
+  visibility: visible;
 }
 
 .modal {
@@ -644,12 +672,14 @@ body {
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
   padding: 24px;
 }
 .dialog-overlay.open {
   opacity: 1;
   pointer-events: all;
+  visibility: visible;
 }
 
 .dialog {

@@ -1,16 +1,16 @@
 // service-worker.js
-const CACHE_NAME = 'task-tracker-v1';
+const CACHE_NAME = 'task-tracker-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/css/styles.css',
-  '/js/store.js',
-  '/js/ranking.js',
-  '/js/backup.js',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  './',
+  './index.html',
+  './css/styles.css',
+  './js/store.js',
+  './js/ranking.js',
+  './js/backup.js',
+  './js/app.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
 ];
 
 self.addEventListener('install', (e) => {
