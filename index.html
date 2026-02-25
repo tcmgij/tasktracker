@@ -4,193 +4,1246 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Task Tracker</title>
-
-  <!-- PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Tasks">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FAF7F2">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <link rel="stylesheet" href="css/styles.css">
+:root {
+  --bg: #FAF7F2;
+  --surface: #FFFFFF;
+  --text: #2C2C2C;
+  --text-secondary: #888888;
+  --border: #D9D0C7;
+  --destructive: #E53935;
+  --goal-0: #C9847A;
+  --goal-1: #7A9E87;
+  --goal-2: #7A8FA6;
+  --radius: 10px;
+  --top-h: 52px;
+  --bot-h: 56px;
+  --font: Georgia, 'Times New Roman', serif;
+  --sb: env(safe-area-inset-bottom, 0px);
+  --st: env(safe-area-inset-top, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ── TOP NAV ── */
+#top-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: calc(var(--top-h) + var(--st));
+  padding: var(--st) 20px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+#top-nav h1 {
+  font-size: 18px;
+  font-weight: normal;
+  letter-spacing: 0.03em;
+}
+#btn-add-top {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation;
+  transition: background .15s, color .15s;
+}
+#btn-add-top:active { background: var(--text); color: var(--bg); }
+
+/* ── SCREENS ── */
+#screens {
+  position: fixed;
+  top: calc(var(--top-h) + var(--st));
+  left: 0; right: 0;
+  bottom: calc(var(--bot-h) + var(--sb));
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  visibility: hidden;
+  pointer-events: none;
+  padding-bottom: 20px;
+}
+.screen.active {
+  visibility: visible;
+  pointer-events: all;
+}
+
+/* ── BOTTOM NAV ── */
+#bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  height: calc(var(--bot-h) + var(--sb));
+  padding-bottom: var(--sb);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.nav-tab {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  border: none; background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 11px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .15s;
+}
+.nav-tab.active { color: var(--text); }
+.nav-tab svg { width: 20px; height: 20px; }
+
+/* ── SEGMENTED CONTROL ── */
+.seg-wrap {
+  padding: 14px 16px 10px;
+  position: sticky; top: 0;
+  background: var(--bg);
+  z-index: 5;
+}
+.segmented {
+  display: flex;
+  background: rgba(0,0,0,.06);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.segmented::-webkit-scrollbar { display: none; }
+.seg-btn {
+  flex: 1; min-width: 50px;
+  padding: 6px 3px;
+  border: none; background: transparent;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.seg-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+/* ── TASK CARDS ── */
+.task-list { padding: 6px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+
+.card-wrap { position: relative; overflow: hidden; border-radius: var(--radius); }
+.card-del-bg {
+  position: absolute; inset: 0;
+  background: var(--destructive);
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 20px;
+  border-radius: var(--radius);
+  color: white; font-size: 13px;
+  pointer-events: none;
+}
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  position: relative; z-index: 1;
+  transform: translateX(0);
+  transition: transform .2s ease;
+  touch-action: pan-y;
+}
+.card-main {
+  display: flex; align-items: center;
+  padding: 13px 14px; gap: 12px;
+  cursor: pointer; min-height: 52px;
+}
+.card-check {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0; background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, background .15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-check:active { border-color: var(--text); background: var(--text); }
+.card-content { flex: 1; min-width: 0; }
+.card-title { font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-meta { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.goal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.goal-label { font-size: 12px; color: var(--text-secondary); font-style: italic; }
+.expand-chevron { color: var(--text-secondary); font-size: 11px; flex-shrink: 0; transition: transform .2s; }
+.card.expanded .expand-chevron { transform: rotate(180deg); }
+
+.card-details { display: none; padding: 0 14px 14px; border-top: 1px solid var(--border); }
+.card.expanded .card-details { display: block; }
+.card-desc { font-size: 14px; color: var(--text-secondary); margin: 10px 0 12px; line-height: 1.5; }
+.dims-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 0; }
+.dim-row { display: grid; grid-template-columns: 90px auto; align-items: center; }
+.dim-label { font-size: 10px; color: var(--text-secondary); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.dots-d { display: flex; gap: 4px; align-items: center; }
+.dot-d { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+.dot-d.on { background: var(--text); }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 60px 32px; color: var(--text-secondary); font-size: 16px; font-style: italic; }
+
+/* ── TASKS SCREEN ── */
+.section-hdr { padding: 20px 16px 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.tasks-list { padding: 0 16px; }
+
+.row-wrap { position: relative; overflow: hidden; }
+.row-del-bg {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 90px;
+  background: var(--destructive);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 13px;
+  pointer-events: none;
+}
+.task-row {
+  display: flex; align-items: center;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; gap: 10px;
+  background: var(--bg);
+  position: relative; z-index: 1;
+  transform: translateX(0);
+  transition: transform .2s;
+  touch-action: pan-y;
+}
+.task-row:last-child { border-bottom: none; }
+.task-row-title { flex: 1; font-size: 15px; color: var(--text); }
+
+/* ── SETTINGS ── */
+.settings-section { margin: 0 16px 24px; }
+.settings-section h2 {
+  font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 20px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  font-weight: normal;
+}
+.goal-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; }
+.goal-item:last-child { border-bottom: none; }
+.goal-rank {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.goal-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.goal-info { flex: 1; min-width: 0; }
+.goal-tag { font-size: 15px; color: var(--text); }
+.goal-desc-text { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goal-multiplier { font-size: 11px; color: var(--text-secondary); letter-spacing: .04em; margin-top: 1px; }
+.goal-del { background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer; padding: 4px 8px; touch-action: manipulation; }
+.goal-del:active { color: var(--destructive); }
+.goal-item-empty { opacity: .55; cursor: pointer; }
+.goal-item-empty:active { opacity: .8; }
+.goal-tag-empty { font-style: italic; color: var(--text-secondary); }
+.goal-rank-empty { border-style: dashed; }
+.goal-add-slot {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px dashed var(--border);
+  background: transparent; color: var(--text-secondary);
+  font-size: 20px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; flex-shrink: 0;
+  transition: border-color .15s, color .15s;
+}
+.goal-add-slot:active { border-color: var(--text); color: var(--text); }
+
+.archive-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+.archive-row:last-child { border-bottom: none; }
+.archive-title { flex: 1; font-size: 15px; color: var(--text-secondary); }
+.archive-date { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.archive-restore {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 9px;
+  font-family: var(--font); font-size: 12px;
+  color: var(--text-secondary); cursor: pointer;
+  touch-action: manipulation; white-space: nowrap;
+  transition: border-color .15s, color .15s;
+  flex-shrink: 0;
+}
+.archive-restore:active { border-color: var(--text); color: var(--text); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 20px; border-radius: 8px;
+  border: 1.5px solid var(--text);
+  background: transparent; color: var(--text);
+  font-family: var(--font); font-size: 15px;
+  cursor: pointer; width: 100%; margin-top: 10px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.btn:active { background: var(--text); color: var(--bg); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.btn-ghost { border-color: var(--border); color: var(--text-secondary); }
+.btn-destructive { border-color: var(--destructive); color: var(--destructive); }
+.btn-destructive:active { background: var(--destructive); color: white; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .2s, visibility .2s;
+}
+.modal-overlay.open { visibility: visible; opacity: 1; }
+
+.modal {
+  background: var(--bg);
+  border-radius: 16px 16px 0 0;
+  width: 100%; max-width: 430px;
+  padding-bottom: calc(16px + var(--sb));
+  max-height: 90dvh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform .25s ease;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 0; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-title { font-size: 17px; font-weight: normal; }
+.modal-close { background: none; border: none; font-size: 20px; color: var(--text-secondary); cursor: pointer; padding: 4px; touch-action: manipulation; }
+.modal-body { padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 18px; }
+.modal-actions { padding: 12px 20px 4px; }
+
+/* ── FORM ── */
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--text-secondary); }
+.form-input, .form-textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-family: var(--font); font-size: 16px; color: var(--text);
+  outline: none; width: 100%;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-textarea:focus { border-color: var(--text); }
+.form-textarea { resize: none; min-height: 80px; line-height: 1.5; }
+
+.dot-rating { display: flex; gap: 10px; align-items: center; }
+.dot-r {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  cursor: pointer; background: transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, border-color .12s;
+}
+.dot-r.on { background: var(--text); border-color: var(--text); }
+
+.goal-selector { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.goal-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s;
+  background: var(--surface);
+}
+.goal-opt:last-child { border-bottom: none; }
+.goal-opt.selected { background: rgba(0,0,0,.04); }
+.goal-opt-label { flex: 1; font-size: 15px; color: var(--text); }
+.goal-opt-check { color: var(--text); font-size: 14px; opacity: 0; }
+.goal-opt.selected .goal-opt-check { opacity: 1; }
+
+/* ── DIALOG ── */
+.dialog-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  visibility: hidden; opacity: 0;
+  transition: opacity .15s, visibility .15s;
+  padding: 24px;
+}
+.dialog-overlay.open { visibility: visible; opacity: 1; }
+.dialog {
+  background: var(--bg);
+  border-radius: 14px;
+  width: 100%; max-width: 320px;
+  overflow: hidden;
+  transform: scale(.95);
+  transition: transform .15s;
+}
+.dialog-overlay.open .dialog { transform: scale(1); }
+.dialog-title { font-size: 16px; padding: 20px 20px 8px; text-align: center; }
+.dialog-msg { font-size: 14px; color: var(--text-secondary); padding: 0 20px 16px; text-align: center; line-height: 1.5; }
+.dialog-btns { display: flex; border-top: 1px solid var(--border); }
+.dialog-btn {
+  flex: 1; padding: 14px;
+  border: none; background: transparent;
+  font-family: var(--font); font-size: 15px;
+  cursor: pointer; color: var(--text);
+  touch-action: manipulation;
+  border-right: 1px solid var(--border);
+  transition: background .12s;
+}
+.dialog-btn:last-child { border-right: none; }
+.dialog-btn.primary { font-weight: bold; }
+.dialog-btn.destructive { color: var(--destructive); }
+.dialog-btn:active { background: rgba(0,0,0,.06); }
+
+@keyframes fadeOut {
+  to { opacity: 0; max-height: 0; padding: 0; margin: 0; overflow: hidden; }
+}
+.completing { animation: fadeOut .3s ease forwards; }
+</style>
 </head>
 <body>
 
-  <!-- TOP NAV -->
-  <nav class="top-nav">
-    <h1>Task Tracker</h1>
-    <button class="btn-add" id="btn-add-top" aria-label="Add task">+</button>
-  </nav>
+<nav id="top-nav">
+  <h1>Task Tracker</h1>
+  <button id="btn-add-top" aria-label="Add task">+</button>
+</nav>
 
-  <!-- SCREENS -->
-  <div class="screens">
+<div id="screens">
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="seg-wrap"><div class="segmented" id="seg-control"></div></div>
+    <div class="task-list" id="home-list"></div>
+  </section>
 
-    <!-- HOME -->
-    <section class="screen active" id="screen-home">
-      <div class="seg-wrap">
-        <div class="segmented" id="seg-control"></div>
+  <!-- TASKS -->
+  <section class="screen" id="screen-tasks">
+    <div class="section-hdr">All Tasks</div>
+    <div class="tasks-list" id="tasks-list"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="screen-settings">
+    <div class="settings-section">
+      <h2>Strategic Goals</h2>
+      <div id="goals-list"></div>
+      <button class="btn" id="btn-add-goal">Add Goal</button>
+    </div>
+    <div class="settings-section">
+      <h2>Archive</h2>
+      <div id="archive-list"></div>
+    </div>
+    <div class="settings-section">
+      <h2>Data</h2>
+      <button class="btn" id="btn-export">Export Backup (JSON)</button>
+      <button class="btn btn-ghost" id="btn-import">Import from JSON</button>
+      <input type="file" accept=".json" id="import-file-input" style="display:none">
+    </div>
+  </section>
+</div>
+
+<nav id="bottom-nav">
+  <button class="nav-tab active" data-tab="home">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+    Home
+  </button>
+  <button class="nav-tab" data-tab="tasks">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h9M7 10h9M7 15h9M3 5h.01M3 10h.01M3 15h.01"/></svg>
+    Tasks
+  </button>
+  <button class="nav-tab" data-tab="settings">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="task-modal-title">New Task</span>
+      <button class="modal-close" id="task-cancel-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label" for="task-title-input">Title</label>
+        <input class="form-input" id="task-title-input" type="text" placeholder="What needs doing?" autocomplete="off">
       </div>
-      <div class="task-list" id="home-list"></div>
-    </section>
-
-    <!-- TASKS -->
-    <section class="screen" id="screen-tasks">
-      <div class="section-header">All Tasks</div>
-      <div class="tasks-list" id="tasks-list"></div>
-    </section>
-
-    <!-- SETTINGS -->
-    <section class="screen" id="screen-settings">
-      <!-- Strategic Goals -->
-      <div class="settings-section">
-        <h2>Strategic Goals</h2>
-        <div id="goals-list"></div>
-        <button class="btn" id="btn-add-goal">Add Goal</button>
+      <div class="form-field">
+        <label class="form-label" for="task-desc-input">Description</label>
+        <textarea class="form-textarea" id="task-desc-input" placeholder="Optional details…" rows="3"></textarea>
       </div>
-
-      <!-- Archive -->
-      <div class="settings-section">
-        <h2>Archive</h2>
-        <div id="archive-list"></div>
-      </div>
-
-      <!-- Data Management -->
-      <div class="settings-section">
-        <h2>Data</h2>
-        <button class="btn" id="btn-export">Export Backup (JSON)</button>
-        <button class="btn btn-ghost" id="btn-import">Import from JSON</button>
-        <input type="file" accept=".json,application/json" id="import-file-input" style="display:none">
-      </div>
-    </section>
-
-  </div><!-- /screens -->
-
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <button class="nav-tab active" data-tab="home" aria-label="Home">
-      <span class="nav-icon">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
-        </svg>
-      </span>
-      Home
-    </button>
-    <button class="nav-tab" data-tab="tasks" aria-label="Tasks">
-      <span class="nav-icon">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 5h9M7 10h9M7 15h9M3 5h.01M3 10h.01M3 15h.01"/>
-        </svg>
-      </span>
-      Tasks
-    </button>
-    <button class="nav-tab" data-tab="settings" aria-label="Settings">
-      <span class="nav-icon">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="10" cy="10" r="3"/>
-          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/>
-        </svg>
-      </span>
-      Settings
-    </button>
-  </nav>
-
-  <!-- TASK MODAL -->
-  <div class="modal-overlay" id="task-modal" role="dialog" aria-modal="true">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
-        <span class="modal-title" id="task-modal-title">New Task</span>
-        <button class="modal-close" id="task-cancel-btn" aria-label="Close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-field">
-          <label class="form-label" for="task-title-input">Title</label>
-          <input class="form-input" id="task-title-input" type="text" placeholder="What needs doing?" autocomplete="off" autocorrect="off">
-        </div>
-        <div class="form-field">
-          <label class="form-label" for="task-desc-input">Description</label>
-          <textarea class="form-textarea" id="task-desc-input" placeholder="Optional details…" rows="3"></textarea>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Importance</label>
-          <div class="dot-rating" data-dim="importance" data-value="1">
-            <div class="dot-r filled"></div>
-            <div class="dot-r"></div>
-            <div class="dot-r"></div>
-          </div>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Urgency</label>
-          <div class="dot-rating" data-dim="urgency" data-value="1">
-            <div class="dot-r filled"></div>
-            <div class="dot-r"></div>
-            <div class="dot-r"></div>
-          </div>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Effort</label>
-          <div class="dot-rating" data-dim="effort" data-value="1">
-            <div class="dot-r filled"></div>
-            <div class="dot-r"></div>
-            <div class="dot-r"></div>
-          </div>
-        </div>
-        <div class="form-field">
-          <label class="form-label">Energy</label>
-          <div class="dot-rating" data-dim="energy" data-value="1">
-            <div class="dot-r filled"></div>
-            <div class="dot-r"></div>
-            <div class="dot-r"></div>
-          </div>
-        </div>
-        <div class="form-field" id="goal-selector-wrap">
-          <label class="form-label">Strategic Goal</label>
-          <div class="goal-selector" id="task-goal-selector"></div>
+      <div class="form-field">
+        <label class="form-label">Importance</label>
+        <div class="dot-rating" data-dim="importance" data-value="1">
+          <div class="dot-r on"></div><div class="dot-r"></div><div class="dot-r"></div>
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn" id="task-save-btn">Save</button>
+      <div class="form-field">
+        <label class="form-label">Urgency</label>
+        <div class="dot-rating" data-dim="urgency" data-value="1">
+          <div class="dot-r on"></div><div class="dot-r"></div><div class="dot-r"></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Effort</label>
+        <div class="dot-rating" data-dim="effort" data-value="1">
+          <div class="dot-r on"></div><div class="dot-r"></div><div class="dot-r"></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Energy</label>
+        <div class="dot-rating" data-dim="energy" data-value="1">
+          <div class="dot-r on"></div><div class="dot-r"></div><div class="dot-r"></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Strategic Goal</label>
+        <div class="goal-selector" id="task-goal-selector"></div>
       </div>
     </div>
-  </div>
-
-  <!-- GOAL MODAL -->
-  <div class="modal-overlay" id="goal-modal" role="dialog" aria-modal="true">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
-        <span class="modal-title" id="goal-modal-title">New Goal</span>
-        <button class="modal-close" id="goal-cancel-btn" aria-label="Close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-field">
-          <label class="form-label" for="goal-tag-input">Tag</label>
-          <input class="form-input" id="goal-tag-input" type="text" placeholder="e.g. health, finances" autocomplete="off" autocorrect="off">
-        </div>
-        <div class="form-field">
-          <label class="form-label" for="goal-desc-input">Description</label>
-          <input class="form-input" id="goal-desc-input" type="text" placeholder="Optional detail…" autocomplete="off">
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn" id="goal-save-btn">Save</button>
-      </div>
+    <div class="modal-actions">
+      <button class="btn" id="task-save-btn" disabled>Save</button>
     </div>
   </div>
+</div>
 
-  <!-- DIALOG -->
-  <div class="dialog-overlay" id="dialog-overlay">
-    <div class="dialog">
-      <div class="dialog-title"></div>
-      <div class="dialog-message"></div>
-      <div class="dialog-btns"></div>
+<!-- GOAL MODAL -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="goal-modal-title">New Goal</span>
+      <button class="modal-close" id="goal-cancel-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label" for="goal-tag-input">Tag</label>
+        <input class="form-input" id="goal-tag-input" type="text" placeholder="e.g. health, finances" autocomplete="off">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="goal-desc-input">Description</label>
+        <input class="form-input" id="goal-desc-input" type="text" placeholder="Optional detail…" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="goal-save-btn">Save</button>
     </div>
   </div>
+</div>
 
-  <script src="js/store.js"></script>
-  <script src="js/ranking.js"></script>
-  <script src="js/backup.js"></script>
-  <script src="js/app.js"></script>
+<!-- DIALOG -->
+<div class="dialog-overlay" id="dialog-overlay">
+  <div class="dialog">
+    <div class="dialog-title" id="dlg-title"></div>
+    <div class="dialog-msg" id="dlg-msg"></div>
+    <div class="dialog-btns" id="dlg-btns"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  STORE — localStorage data layer
+// ═══════════════════════════════════════
+const Store = (() => {
+  const K = { tasks:'tt_tasks', goals:'tt_goals', settings:'tt_settings' };
+
+  function get(key) {
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+  }
+  function set(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+  function purgeArchive() {
+    const cutoff = Date.now() - 14*24*60*60*1000;
+    const tasks = get(K.tasks).filter(t => t.status !== 'done' || new Date(t.completedAt).getTime() > cutoff);
+    set(K.tasks, tasks);
+  }
+
+  return {
+    init() { purgeArchive(); },
+    getTasks()      { return get(K.tasks); },
+    getOpenTasks()  { return get(K.tasks).filter(t => t.status === 'open'); },
+    getArchived()   { return get(K.tasks).filter(t => t.status === 'done'); },
+    addTask(t)      { const a = get(K.tasks); a.push(t); set(K.tasks, a); },
+    updateTask(id, u) {
+      const a = get(K.tasks), i = a.findIndex(t => t.id === id);
+      if (i > -1) { a[i] = {...a[i], ...u}; set(K.tasks, a); return a[i]; }
+    },
+    deleteTask(id)  { set(K.tasks, get(K.tasks).filter(t => t.id !== id)); },
+    completeTask(id){ return this.updateTask(id, {status:'done', completedAt: new Date().toISOString()}); },
+    restoreTask(id) { return this.updateTask(id, {status:'open', completedAt: null}); },
+
+    // Goals: fixed 3 slots. Slot index is permanent (0=×1.5, 1=×1.25, 2=×1.25).
+    SLOT_MULTIPLIERS: [1.5, 1.25, 1.25],
+
+    getGoalSlots() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(K.goals));
+        if (!Array.isArray(raw)) return [null, null, null];
+        // Ensure exactly 3 entries
+        const slots = [null, null, null];
+        // Migrate old flat array format (objects without slot structure)
+        if (raw.length > 0 && raw[0] !== null && typeof raw[0] === 'object' && raw[0].colorIndex != null) {
+          raw.forEach(g => { if (g && g.colorIndex >= 0 && g.colorIndex <= 2) slots[g.colorIndex] = g; });
+          set(K.goals, slots);
+          return slots;
+        }
+        for (let i = 0; i < 3; i++) slots[i] = raw[i] || null;
+        return slots;
+      } catch { return [null, null, null]; }
+    },
+    getGoals() {
+      // Returns filled slots only (for backward compat with ranking etc.)
+      return this.getGoalSlots().filter(s => s !== null);
+    },
+    setSlot(slotIndex, goalData) {
+      const slots = this.getGoalSlots();
+      slots[slotIndex] = goalData ? {
+        ...goalData,
+        colorIndex: slotIndex,
+        multiplier: this.SLOT_MULTIPLIERS[slotIndex],
+      } : null;
+      set(K.goals, slots);
+    },
+    clearSlot(slotIndex) {
+      const slots = this.getGoalSlots();
+      const goal = slots[slotIndex];
+      if (goal) {
+        const tasks = get(K.tasks);
+        tasks.forEach(t => { if (t.goalId === goal.id) t.goalId = null; });
+        set(K.tasks, tasks);
+      }
+      slots[slotIndex] = null;
+      set(K.goals, slots);
+    },
+    updateGoal(id, u) {
+      const slots = this.getGoalSlots();
+      const i = slots.findIndex(s => s && s.id === id);
+      if (i > -1) { slots[i] = {...slots[i], ...u}; set(K.goals, slots); }
+    },
+    deleteGoal(id) {
+      const slots = this.getGoalSlots();
+      const i = slots.findIndex(s => s && s.id === id);
+      if (i > -1) this.clearSlot(i);
+    },
+
+    getSettings()   { try { return JSON.parse(localStorage.getItem(K.settings) || '{}'); } catch { return {}; } },
+    getSetting(k, fb=null) { return this.getSettings()[k] ?? fb; },
+    saveSetting(k, v) { const s = this.getSettings(); s[k] = v; localStorage.setItem(K.settings, JSON.stringify(s)); },
+
+    exportAll() {
+      return { version:1, exportedAt: new Date().toISOString(), tasks: get(K.tasks), goals: get(K.goals), settings: this.getSettings() };
+    },
+    importReplace(d) { set(K.tasks, d.tasks||[]); set(K.goals, d.goals||[]); localStorage.setItem(K.settings, JSON.stringify(d.settings||{})); },
+    importMerge(d) {
+      const tasks = get(K.tasks);
+      const slots = this.getGoalSlots();
+      const tid = new Set(tasks.map(t=>t.id));
+      let skipped = 0;
+      // Merge goals into slots by colorIndex (slot index)
+      for (const g of (d.goals||[])) {
+        const si = g.colorIndex;
+        if (si == null || si < 0 || si > 2) { skipped++; continue; }
+        if (slots[si] !== null) { skipped++; continue; } // slot occupied
+        slots[si] = g;
+      }
+      set(K.goals, slots);
+      const newGids = new Set(slots.filter(Boolean).map(g=>g.id));
+      for (const t of (d.tasks||[])) {
+        if (tid.has(t.id)) continue;
+        if (t.goalId && !newGids.has(t.goalId)) t.goalId = null;
+        tasks.push(t);
+      }
+      set(K.tasks, tasks);
+      return skipped;
+    }
+  };
+})();
+
+// ═══════════════════════════════════════
+//  RANKING
+// ═══════════════════════════════════════
+const Ranking = {
+  PERSPECTIVES: ['Quick','Hours','Days','Impact','Urgent','Strategic'],
+  score(t, p, G) {
+    const {importance:I, urgency:U, effort:EFF, energy:EN} = t;
+    switch(p) {
+      case 'Quick':    return (I*G)+U-(1.5*EN);
+      case 'Hours':    return (I*G)+U-EN;
+      case 'Days':     return (1.5*I*G)+U-EN;
+      case 'Impact':   return (1.5*I*G)+U/2;
+      case 'Urgent':   return (1.5*U*G)+I/2;
+      case 'Strategic':return (I*G)+U-(EFF+EN)/2;
+      default: return 0;
+    }
+  },
+  filter(tasks, p) {
+    switch(p) {
+      case 'Quick':     return tasks.filter(t=>t.effort===1);
+      case 'Hours':     return tasks.filter(t=>t.effort===2);
+      case 'Days':      return tasks.filter(t=>t.effort===3);
+      case 'Strategic': return tasks.filter(t=>t.goalId!==null);
+      default: return tasks;
+    }
+  },
+  rank(tasks, p) {
+    const gmap = {};
+    Store.getGoals().forEach(g => { gmap[g.id] = g.multiplier||1.0; });
+    return this.filter(tasks, p)
+      .map(t => ({...t, _s: this.score(t, p, t.goalId ? (gmap[t.goalId]||1.0) : 1.0)}))
+      .sort((a,b) => b._s !== a._s ? b._s-a._s : new Date(a.createdAt)-new Date(b.createdAt));
+  }
+};
+
+// ═══════════════════════════════════════
+//  BACKUP
+// ═══════════════════════════════════════
+const Backup = {
+  export() {
+    const blob = new Blob([JSON.stringify(Store.exportAll(),null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `task-tracker-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+  import(file, mode) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => {
+        try {
+          const d = JSON.parse(e.target.result);
+          if (!Array.isArray(d.tasks)) { rej(new Error('Invalid backup: missing tasks array.')); return; }
+          if (mode === 'replace') { Store.importReplace(d); res({skipped:0}); }
+          else { res({skipped: Store.importMerge(d)}); }
+        } catch { rej(new Error('Could not parse file. Please check it is a valid Task Tracker backup.')); }
+      };
+      r.onerror = () => rej(new Error('Could not read file.'));
+      r.readAsText(file);
+    });
+  }
+};
+
+// ═══════════════════════════════════════
+//  APP
+// ═══════════════════════════════════════
+(() => {
+  Store.init();
+
+  const GC = ['var(--goal-0)','var(--goal-1)','var(--goal-2)'];
+  const EMPTY = ['The desk is clear.','Focus is a gift.','A moment of quiet.','Nothing pressing right now.'];
+
+  let tab = 'home';
+  let perspective = Store.getSetting('perspective','Quick');
+  let expandedId = null;
+  let editingTaskId = null;
+  let editingGoalId = null;
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  // ── TAB ROUTING ──
+  function showTab(t) {
+    tab = t;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-'+t).classList.add('active');
+    document.querySelector('[data-tab="'+t+'"]').classList.add('active');
+    if (t==='home') renderHome();
+    if (t==='tasks') renderTasks();
+    if (t==='settings') renderSettings();
+  }
+
+  document.querySelectorAll('.nav-tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  document.getElementById('btn-add-top').addEventListener('click', () => openTaskModal(null));
+
+  // ── SEGMENTED CONTROL ──
+  function renderSeg() {
+    const w = document.getElementById('seg-control');
+    w.innerHTML = '';
+    Ranking.PERSPECTIVES.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'seg-btn' + (p===perspective ? ' active' : '');
+      b.textContent = p;
+      b.addEventListener('click', () => {
+        perspective = p;
+        Store.saveSetting('perspective', p);
+        renderSeg();
+        renderHomeList();
+      });
+      w.appendChild(b);
+    });
+  }
+
+  // ── HOME ──
+  function renderHome() { renderSeg(); renderHomeList(); }
+
+  function renderHomeList() {
+    const c = document.getElementById('home-list');
+    c.innerHTML = '';
+    const tasks = Ranking.rank(Store.getOpenTasks(), perspective);
+    if (!tasks.length) {
+      c.innerHTML = '<div class="empty-state">'+EMPTY[Math.floor(Math.random()*EMPTY.length)]+'</div>';
+      return;
+    }
+    tasks.forEach(t => c.appendChild(makeCard(t)));
+  }
+
+  function dots(val) {
+    let h = '<div class="dots-d">';
+    for (let i=1;i<=3;i++) h += '<div class="dot-d'+(i<=val?' on':'')+'"></div>';
+    return h+'</div>';
+  }
+
+  function makeCard(task) {
+    const goals = Store.getGoals();
+    const goal = goals.find(g => g.id === task.goalId);
+    const gc = goal ? GC[goal.colorIndex] : null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'card-wrap';
+
+    const isExp = expandedId === task.id;
+    wrap.innerHTML = `
+      <div class="card-del-bg">Delete</div>
+      <div class="card${isExp?' expanded':''}">
+        <div class="card-main">
+          <button class="card-check" data-id="${task.id}" aria-label="Complete">
+            <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+              <path d="M1 5l3.5 3.5L11 1" stroke="${isExp?'#2C2C2C':'white'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="card-content">
+            <div class="card-title">${esc(task.title)}</div>
+            ${goal ? `<div class="card-meta"><span class="goal-dot" style="background:${gc}"></span><span class="goal-label">${esc(goal.tag)}</span></div>` : ''}
+          </div>
+          <span class="expand-chevron">▾</span>
+        </div>
+        <div class="card-details">
+          ${task.description ? `<div class="card-desc">${esc(task.description)}</div>` : ''}
+          <div class="dims-grid">
+            <div class="dim-row"><span class="dim-label">Importance</span>${dots(task.importance)}</div>
+            <div class="dim-row"><span class="dim-label">Urgency</span>${dots(task.urgency)}</div>
+            <div class="dim-row"><span class="dim-label">Effort</span>${dots(task.effort)}</div>
+            <div class="dim-row"><span class="dim-label">Energy</span>${dots(task.energy)}</div>
+          </div>
+        </div>
+      </div>`;
+
+    wrap.querySelector('.card-main').addEventListener('click', e => {
+      if (e.target.closest('.card-check')) return;
+      const card = wrap.querySelector('.card');
+      if (expandedId === task.id) {
+        expandedId = null; card.classList.remove('expanded');
+      } else {
+        document.querySelectorAll('.card.expanded').forEach(c => c.classList.remove('expanded'));
+        expandedId = task.id; card.classList.add('expanded');
+      }
+    });
+
+    wrap.querySelector('.card-check').addEventListener('click', e => {
+      e.stopPropagation();
+      wrap.classList.add('completing');
+      setTimeout(() => { Store.completeTask(task.id); renderHomeList(); }, 300);
+    });
+
+    attachSwipe(wrap, wrap.querySelector('.card'), () => {
+      Store.deleteTask(task.id);
+      renderHomeList();
+    });
+
+    return wrap;
+  }
+
+  // ── TASKS SCREEN ──
+  function renderTasks() {
+    const c = document.getElementById('tasks-list');
+    c.innerHTML = '';
+    const tasks = Store.getOpenTasks().sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    if (!tasks.length) { c.innerHTML = '<div class="empty-state">No tasks yet.</div>'; return; }
+    const goals = Store.getGoals();
+    tasks.forEach(task => {
+      const goal = goals.find(g=>g.id===task.goalId);
+      const gc = goal ? GC[goal.colorIndex] : null;
+      const wrap = document.createElement('div');
+      wrap.className = 'row-wrap';
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.innerHTML = `
+        ${goal ? `<span class="goal-dot" style="background:${gc}"></span>` : ''}
+        <span class="task-row-title">${esc(task.title)}</span>
+        <span style="color:var(--text-secondary);font-size:13px">›</span>`;
+      row.addEventListener('click', () => openTaskModal(task.id));
+      const bg = document.createElement('div');
+      bg.className = 'row-del-bg'; bg.textContent = 'Delete';
+      wrap.appendChild(bg); wrap.appendChild(row);
+      attachSwipe(wrap, row, () => { Store.deleteTask(task.id); renderTasks(); });
+      c.appendChild(wrap);
+    });
+  }
+
+  // ── SETTINGS ──
+  function renderSettings() { renderGoals(); renderArchive(); }
+
+  function renderGoals() {
+    const c = document.getElementById('goals-list');
+    c.innerHTML = '';
+    const slots = Store.getGoalSlots();
+    const rankLabels = ['Primary', 'Secondary', 'Tertiary'];
+    const multipliers = Store.SLOT_MULTIPLIERS;
+
+    slots.forEach((g, slotIndex) => {
+      const item = document.createElement('div');
+      item.className = 'goal-item';
+
+      if (g) {
+        // Filled slot
+        item.innerHTML = `
+          <div class="goal-rank">${slotIndex + 1}</div>
+          <span class="goal-swatch" style="background:${GC[slotIndex]}"></span>
+          <div class="goal-info">
+            <div class="goal-tag">${esc(g.tag)}</div>
+            <div class="goal-multiplier">${rankLabels[slotIndex]} goal · ×${multipliers[slotIndex]}</div>
+            ${g.description ? `<div class="goal-desc-text">${esc(g.description)}</div>` : ''}
+          </div>
+          <button class="goal-del" aria-label="Clear slot">✕</button>`;
+        item.querySelector('.goal-info').addEventListener('click', () => openGoalModal(slotIndex));
+        item.querySelector('.goal-del').addEventListener('click', e => {
+          e.stopPropagation();
+          showDialog('Clear Goal', `Remove "${g.tag}" from slot ${slotIndex + 1}? Tasks will be untagged.`, [
+            {label:'Cancel'},
+            {label:'Remove', cls:'destructive', action:() => { Store.clearSlot(slotIndex); renderSettings(); }}
+          ]);
+        });
+      } else {
+        // Empty slot — shows as placeholder
+        item.classList.add('goal-item-empty');
+        item.innerHTML = `
+          <div class="goal-rank goal-rank-empty">${slotIndex + 1}</div>
+          <span class="goal-swatch" style="background:var(--border)"></span>
+          <div class="goal-info">
+            <div class="goal-tag goal-tag-empty">Empty slot</div>
+            <div class="goal-multiplier">${rankLabels[slotIndex]} goal · ×${multipliers[slotIndex]}</div>
+          </div>
+          <button class="goal-add-slot" data-slot="${slotIndex}" aria-label="Add goal">+</button>`;
+        item.querySelector('.goal-add-slot').addEventListener('click', e => {
+          e.stopPropagation();
+          openGoalModal(slotIndex);
+        });
+        item.querySelector('.goal-info').addEventListener('click', () => openGoalModal(slotIndex));
+      }
+
+      c.appendChild(item);
+    });
+    // Hide the old standalone Add Goal button — slots handle it now
+    document.getElementById('btn-add-goal').style.display = 'none';
+  }
+
+  function renderArchive() {
+    const c = document.getElementById('archive-list');
+    c.innerHTML = '';
+    const tasks = Store.getArchived().sort((a,b) => new Date(b.completedAt)-new Date(a.completedAt));
+    if (!tasks.length) { c.innerHTML = '<div style="padding:16px 0;color:var(--text-secondary);font-size:14px;font-style:italic">No completed tasks.</div>'; return; }
+    const goals = Store.getGoals();
+    tasks.forEach(t => {
+      const goal = goals.find(g=>g.id===t.goalId);
+      const row = document.createElement('div');
+      row.className = 'archive-row';
+      const d = new Date(t.completedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+      row.innerHTML = `
+        ${goal ? `<span class="goal-dot" style="background:${GC[goal.colorIndex]}"></span>` : ''}
+        <span class="archive-title">${esc(t.title)}</span>
+        <span class="archive-date">${d}</span>
+        <button class="archive-restore" data-id="${t.id}">Restore</button>`;
+      row.querySelector('.archive-restore').addEventListener('click', () => {
+        Store.restoreTask(t.id);
+        renderArchive();
+        // If home is visible, refresh it too
+        if (tab === 'home') renderHomeList();
+        if (tab === 'tasks') renderTasks();
+      });
+      c.appendChild(row);
+    });
+  }
+
+  // ── GOAL MODAL ──
+  // editingGoalId now holds a slot index (0, 1, or 2)
+  document.getElementById('goal-cancel-btn').addEventListener('click', () => closeModal('goal-modal'));
+  document.getElementById('goal-save-btn').addEventListener('click', saveGoal);
+
+  function openGoalModal(slotIndex) {
+    editingGoalId = slotIndex; // reuse var — now stores slot index
+    const g = Store.getGoalSlots()[slotIndex];
+    const rankLabels = ['Primary', 'Secondary', 'Tertiary'];
+    document.getElementById('goal-modal-title').textContent =
+      `${rankLabels[slotIndex]} Goal (×${Store.SLOT_MULTIPLIERS[slotIndex]})`;
+    document.getElementById('goal-tag-input').value = g ? g.tag : '';
+    document.getElementById('goal-desc-input').value = g ? (g.description||'') : '';
+    openModal('goal-modal');
+  }
+
+  function saveGoal() {
+    const tag = document.getElementById('goal-tag-input').value.trim();
+    if (!tag) { document.getElementById('goal-tag-input').focus(); return; }
+    const description = document.getElementById('goal-desc-input').value.trim();
+    const slotIndex = editingGoalId; // 0, 1, or 2
+    const existing = Store.getGoalSlots()[slotIndex];
+    Store.setSlot(slotIndex, {
+      id: existing ? existing.id : crypto.randomUUID(),
+      tag,
+      description,
+    });
+    closeModal('goal-modal');
+    renderSettings();
+  }
+
+  // ── TASK MODAL ──
+  document.getElementById('task-cancel-btn').addEventListener('click', () => closeModal('task-modal'));
+  document.getElementById('task-save-btn').addEventListener('click', saveTask);
+  document.getElementById('task-title-input').addEventListener('input', e => {
+    document.getElementById('task-save-btn').disabled = !e.target.value.trim();
+  });
+
+  // Dot rating inputs
+  document.querySelectorAll('.dot-rating').forEach(container => {
+    container.querySelectorAll('.dot-r').forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        const cur = parseInt(container.dataset.value||'1');
+        const nv = (i+1===cur) ? 1 : i+1;
+        setDotRating(container.dataset.dim, nv);
+      });
+    });
+  });
+
+  function setDotRating(dim, val) {
+    const c = document.querySelector('[data-dim="'+dim+'"]');
+    if (!c) return;
+    c.querySelectorAll('.dot-r').forEach((d,i) => d.classList.toggle('on', i<val));
+    c.dataset.value = val;
+  }
+  function getDotRating(dim) {
+    return parseInt(document.querySelector('[data-dim="'+dim+'"]').dataset.value||'1');
+  }
+
+  function openTaskModal(taskId) {
+    editingTaskId = taskId;
+    const task = taskId ? Store.getTasks().find(t=>t.id===taskId) : null;
+    document.getElementById('task-modal-title').textContent = task ? 'Edit Task' : 'New Task';
+    document.getElementById('task-title-input').value = task ? task.title : '';
+    document.getElementById('task-desc-input').value = task ? (task.description||'') : '';
+    document.getElementById('task-save-btn').disabled = task ? !task.title.trim() : true;
+    ['importance','urgency','effort','energy'].forEach(d => setDotRating(d, task ? task[d] : 1));
+    renderGoalSelector(task ? task.goalId : null);
+    openModal('task-modal');
+    setTimeout(() => document.getElementById('task-title-input').focus(), 300);
+  }
+
+  function renderGoalSelector(selectedGoalId) {
+    const c = document.getElementById('task-goal-selector');
+    c.innerHTML = '';
+    const goals = Store.getGoals();
+    [null, ...goals].forEach(g => {
+      const opt = document.createElement('div');
+      const isNone = g === null;
+      const isSel = isNone ? selectedGoalId === null : selectedGoalId === g.id;
+      opt.className = 'goal-opt' + (isSel ? ' selected' : '');
+      opt.dataset.goalId = isNone ? '' : g.id;
+      opt.innerHTML = `
+        ${!isNone && g ? `<span class="goal-dot" style="background:${GC[g.colorIndex]}"></span>` : '<span style="width:8px;height:8px;display:inline-block;flex-shrink:0"></span>'}
+        <span class="goal-opt-label">${isNone ? 'None' : esc(g.tag)}</span>
+        <span class="goal-opt-check">✓</span>`;
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.goal-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+      });
+      c.appendChild(opt);
+    });
+  }
+
+  function saveTask() {
+    const title = document.getElementById('task-title-input').value.trim();
+    if (!title) { document.getElementById('task-title-input').focus(); return; }
+    const selOpt = document.querySelector('.goal-opt.selected');
+    const goalId = selOpt && selOpt.dataset.goalId ? selOpt.dataset.goalId : null;
+    const data = {
+      title,
+      description: document.getElementById('task-desc-input').value.trim(),
+      importance: getDotRating('importance'),
+      urgency: getDotRating('urgency'),
+      effort: getDotRating('effort'),
+      energy: getDotRating('energy'),
+      goalId
+    };
+    if (editingTaskId) {
+      Store.updateTask(editingTaskId, data);
+    } else {
+      Store.addTask({ id: crypto.randomUUID(), ...data, status:'open', createdAt: new Date().toISOString(), completedAt: null });
+    }
+    closeModal('task-modal');
+    if (tab==='home') renderHomeList();
+    if (tab==='tasks') renderTasks();
+  }
+
+  // ── DATA MANAGEMENT ──
+  document.getElementById('btn-export').addEventListener('click', () => Backup.export());
+  document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file-input').click());
+  document.getElementById('import-file-input').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    e.target.value = '';
+    showDialog('Import Backup', 'How would you like to handle this import?', [
+      {label:'Cancel'},
+      {label:'Merge', action: async () => {
+        try {
+          const {skipped} = await Backup.import(file,'merge');
+          if (skipped > 0) showDialog('Import Complete', `${skipped} goal(s) skipped (already at 3-goal limit).`, [{label:'OK',cls:'primary'}]);
+          refresh();
+        } catch(err) { showDialog('Import Error', err.message, [{label:'OK',cls:'primary'}]); }
+      }},
+      {label:'Replace All', cls:'destructive', action: async () => {
+        try {
+          await Backup.import(file,'replace');
+          perspective = Store.getSetting('perspective','Quick');
+          refresh();
+        } catch(err) { showDialog('Import Error', err.message, [{label:'OK',cls:'primary'}]); }
+      }}
+    ]);
+  });
+
+  function refresh() {
+    if (tab==='home') renderHome();
+    if (tab==='tasks') renderTasks();
+    if (tab==='settings') renderSettings();
+  }
+
+  // ── MODAL HELPERS ──
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  document.querySelectorAll('.modal-overlay').forEach(ov => {
+    ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
+  });
+
+  // ── DIALOG ──
+  function showDialog(title, msg, buttons) {
+    document.getElementById('dlg-title').textContent = title;
+    document.getElementById('dlg-msg').textContent = msg;
+    const bc = document.getElementById('dlg-btns');
+    bc.innerHTML = '';
+    buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'dialog-btn ' + (b.cls||'');
+      btn.textContent = b.label;
+      btn.addEventListener('click', () => {
+        document.getElementById('dialog-overlay').classList.remove('open');
+        if (b.action) b.action();
+      });
+      bc.appendChild(btn);
+    });
+    document.getElementById('dialog-overlay').classList.add('open');
+  }
+
+  // ── SWIPE TO DELETE ──
+  function attachSwipe(wrap, slideEl, onDelete) {
+    let sx=0, sy=0, cx=0, dragging=false, horiz=null;
+    const SNAP = -80, MAX = -105;
+
+    slideEl.addEventListener('touchstart', e => {
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      cx = 0; dragging = true; horiz = null;
+      slideEl.style.transition = 'none';
+    }, {passive:true});
+
+    slideEl.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const dx = e.touches[0].clientX - sx;
+      const dy = e.touches[0].clientY - sy;
+      if (horiz === null) {
+        if (Math.abs(dx) > Math.abs(dy)+4) horiz = true;
+        else if (Math.abs(dy) > Math.abs(dx)+4) horiz = false;
+        else return;
+      }
+      if (!horiz) return;
+      e.preventDefault();
+      cx = dx > 0 ? 0 : Math.max(dx, MAX);
+      slideEl.style.transform = 'translateX('+cx+'px)';
+    }, {passive:false});
+
+    function end() {
+      if (!dragging) return;
+      dragging = false;
+      slideEl.style.transition = '';
+      if (cx < SNAP) {
+        slideEl.style.transform = 'translateX('+SNAP+'px)';
+        // Tapping the revealed Delete bg confirms deletion
+        const onTap = () => {
+          wrap.removeEventListener('click', onTap);
+          slideEl.style.transform = '';
+          onDelete();
+        };
+        // Small delay so the touchend doesn't immediately fire as click
+        setTimeout(() => wrap.addEventListener('click', onTap), 50);
+      } else {
+        slideEl.style.transform = '';
+      }
+      cx = 0;
+    }
+    slideEl.addEventListener('touchend', end);
+    slideEl.addEventListener('touchcancel', end);
+  }
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  }
+
+  // ── INIT ──
+  showTab('home');
+})();
+</script>
 </body>
 </html>
