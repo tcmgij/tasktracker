@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Task Tracker</title>
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tasks">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#FAF7F2">
+
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <nav class="top-nav">
+    <h1>Task Tracker</h1>
+    <button class="btn-add" id="btn-add-top" aria-label="Add task">+</button>
+  </nav>
+
+  <!-- SCREENS -->
+  <div class="screens">
+
+    <!-- HOME -->
+    <section class="screen active" id="screen-home">
+      <div class="seg-wrap">
+        <div class="segmented" id="seg-control"></div>
+      </div>
+      <div class="task-list" id="home-list"></div>
+    </section>
+
+    <!-- TASKS -->
+    <section class="screen" id="screen-tasks">
+      <div class="section-header">All Tasks</div>
+      <div class="tasks-list" id="tasks-list"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="screen" id="screen-settings">
+      <!-- Strategic Goals -->
+      <div class="settings-section">
+        <h2>Strategic Goals</h2>
+        <div id="goals-list"></div>
+        <button class="btn" id="btn-add-goal">Add Goal</button>
+      </div>
+
+      <!-- Archive -->
+      <div class="settings-section">
+        <h2>Archive</h2>
+        <div id="archive-list"></div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="settings-section">
+        <h2>Data</h2>
+        <button class="btn" id="btn-export">Export Backup (JSON)</button>
+        <button class="btn btn-ghost" id="btn-import">Import from JSON</button>
+        <input type="file" accept=".json,application/json" id="import-file-input" style="display:none">
+      </div>
+    </section>
+
+  </div><!-- /screens -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" data-tab="home" aria-label="Home">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+        </svg>
+      </span>
+      Home
+    </button>
+    <button class="nav-tab" data-tab="tasks" aria-label="Tasks">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 5h9M7 10h9M7 15h9M3 5h.01M3 10h.01M3 15h.01"/>
+        </svg>
+      </span>
+      Tasks
+    </button>
+    <button class="nav-tab" data-tab="settings" aria-label="Settings">
+      <span class="nav-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10" cy="10" r="3"/>
+          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/>
+        </svg>
+      </span>
+      Settings
+    </button>
+  </nav>
+
+  <!-- TASK MODAL -->
+  <div class="modal-overlay" id="task-modal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="task-modal-title">New Task</span>
+        <button class="modal-close" id="task-cancel-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label class="form-label" for="task-title-input">Title</label>
+          <input class="form-input" id="task-title-input" type="text" placeholder="What needs doing?" autocomplete="off" autocorrect="off">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="task-desc-input">Description</label>
+          <textarea class="form-textarea" id="task-desc-input" placeholder="Optional details…" rows="3"></textarea>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Importance</label>
+          <div class="dot-rating" data-dim="importance" data-value="1">
+            <div class="dot-r filled"></div>
+            <div class="dot-r"></div>
+            <div class="dot-r"></div>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Urgency</label>
+          <div class="dot-rating" data-dim="urgency" data-value="1">
+            <div class="dot-r filled"></div>
+            <div class="dot-r"></div>
+            <div class="dot-r"></div>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Effort</label>
+          <div class="dot-rating" data-dim="effort" data-value="1">
+            <div class="dot-r filled"></div>
+            <div class="dot-r"></div>
+            <div class="dot-r"></div>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Energy</label>
+          <div class="dot-rating" data-dim="energy" data-value="1">
+            <div class="dot-r filled"></div>
+            <div class="dot-r"></div>
+            <div class="dot-r"></div>
+          </div>
+        </div>
+        <div class="form-field" id="goal-selector-wrap">
+          <label class="form-label">Strategic Goal</label>
+          <div class="goal-selector" id="task-goal-selector"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="task-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOAL MODAL -->
+  <div class="modal-overlay" id="goal-modal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="goal-modal-title">New Goal</span>
+        <button class="modal-close" id="goal-cancel-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label class="form-label" for="goal-tag-input">Tag</label>
+          <input class="form-input" id="goal-tag-input" type="text" placeholder="e.g. health, finances" autocomplete="off" autocorrect="off">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="goal-desc-input">Description</label>
+          <input class="form-input" id="goal-desc-input" type="text" placeholder="Optional detail…" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="goal-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIALOG -->
+  <div class="dialog-overlay" id="dialog-overlay">
+    <div class="dialog">
+      <div class="dialog-title"></div>
+      <div class="dialog-message"></div>
+      <div class="dialog-btns"></div>
+    </div>
+  </div>
+
+  <script src="/js/store.js"></script>
+  <script src="/js/ranking.js"></script>
+  <script src="/js/backup.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
