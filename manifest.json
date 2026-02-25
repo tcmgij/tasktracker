@@ -3,7 +3,8 @@
   "short_name": "Tasks",
   "display": "standalone",
   "orientation": "portrait",
-  "start_url": "/",
+  "start_url": "/tasktracker/",
+  "scope": "/tasktracker/",
   "background_color": "#FAF7F2",
   "theme_color": "#FAF7F2",
   "icons": [
